@@ -50,7 +50,8 @@
                     android:paddingTop="4dp"
                     android:text="Delivery"
                     android:textSize="22sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:id="@+id/order_type"/>
 
             </LinearLayout>
 
@@ -75,7 +76,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="kulla"
+                    android:text="Kulla"
                     android:textSize="18sp"
                     android:id="@+id/display_name" />
 
@@ -97,38 +98,11 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Sector 34,  "
-                    android:textSize="18sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Noida"
+                    android:id="@+id/address"
+                    android:text="A-82, Sector 34, Noida "
                     android:textSize="18sp" />
 
             </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingLeft="8dp"
-                    android:paddingTop="4dp"
-                    android:text="Dist Left : "
-                    android:textSize="18sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="5.3 km"
-                    android:textSize="18sp" />
-
-            </LinearLayout>
-
 
 
             <LinearLayout
@@ -147,6 +121,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:id="@+id/customer_number"
                     android:text="7417485915"
                     android:textSize="18sp" />
 
@@ -160,6 +135,12 @@
                 android:paddingBottom="4dp"
                 android:paddingTop="4dp">
 
+                <View
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:background="@null" />
+
                 <Button
                     android:id="@+id/call_customer_button"
                     android:layout_width="wrap_content"
@@ -167,7 +148,8 @@
                     android:text="Call customer" />
 
                 <View
-                    android:layout_width="35dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
                     android:layout_height="match_parent"
                     android:background="@null" />
 
@@ -176,6 +158,12 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Check map" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:background="@null" />
 
             </LinearLayout>
 
@@ -188,22 +176,47 @@
                 android:paddingBottom="4dp"
                 android:paddingTop="4dp">
 
-                <Button
-                    android:id="@+id/order_finished_button"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Order finished" />
-
                 <View
-                    android:layout_width="35dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
                     android:layout_height="match_parent"
                     android:background="@null" />
 
                 <Button
-                    android:id="@+id/skip_order_button"
+                    android:id="@+id/acknowledge_order_button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Skip order" />
+                    android:text="Accept" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:background="@null" />
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/order_reached_button"
+                    android:text="PICKED UP"/>
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:background="@null" />
+
+                <Button
+                    android:id="@+id/order_finished_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DELIVERED" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:background="@null" />
 
             </LinearLayout>
 

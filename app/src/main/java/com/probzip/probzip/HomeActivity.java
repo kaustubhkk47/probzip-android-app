@@ -3,12 +3,8 @@ package com.probzip.probzip;
 import java.util.HashMap;
 import java.util.Locale;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.os.Bundle;
 import android.telephony.SmsManager;
 import android.view.Menu;
@@ -19,22 +15,15 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.net.Uri;
-
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
+import org.json.JSONException;
 import org.json.JSONObject;
-
-
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.plus.Plus;
 
 
 public class HomeActivity extends Activity {
@@ -42,14 +31,20 @@ public class HomeActivity extends Activity {
     //Variable Declarations
 
     SessionManager session;
-    private Double sourceLatitude;
-    private Double sourceLongitude;
-    private Double destinationLatitude;
-    private Double destinationLongitude;
+
+
+    private TextView orderType;
+    private TextView CustomerName;
+    private TextView addressDisplay;
+    private TextView customerPhone;
 
     private Button callCustomerButton;
 
     private Button checkMap;
+
+    private Button acceptOrderButton;
+
+    private Button orderReachedButton;
 
     private Button orderFinishedButton;
 
@@ -67,18 +62,14 @@ public class HomeActivity extends Activity {
         setContentView(R.layout.activity_home);
 
         session = new SessionManager(getApplicationContext());
-        userNumber = (TextView) findViewById(R.id.user_number);
-
         session.checkLogin();
 
-        HashMap<String, String> user = session.getUserDetails();
 
-        String number = user.get(SessionManager.KEY_SECRET);
-
-        userNumber.setText(number);
+        if(session.isTransmitting() == false){
+            startLocationTransmitter();
+        }
 
         //Location updates
-        GPSTracker gps = new GPSTracker(HomeActivity.this);
 
 
         //Call Customer
@@ -88,11 +79,17 @@ public class HomeActivity extends Activity {
         callCustomerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
-                // Put phone number of customer
-                Intent callIntent = new Intent(Intent.ACTION_CALL);
-                callIntent.setData(Uri.parse("tel:7417485915"));
-                startActivity(callIntent);
+                if (session.isPending() == true) {
+                    HashMap<String, String> user = session.getUserDetails();
+                    String number = user.get(SessionManager.CUSTOMER_PHONE);
+                    number = "tel:" + number;
+                    // Put phone number of customer
+                    Intent callIntent = new Intent(Intent.ACTION_CALL);
+                    callIntent.setData(Uri.parse(number));
+                    startActivity(callIntent);
+                } else {
+                    Toast.makeText(getApplicationContext(), "No pending orders", Toast.LENGTH_SHORT).show();
+                }
 
             }
         });
@@ -106,26 +103,70 @@ public class HomeActivity extends Activity {
             public void onClick(View v) {
                 //Get current location
 
-                GPSTracker gps = new GPSTracker(HomeActivity.this);
+                HashMap<String, Float> user1 = session.getOwnLatlong();
 
-                destinationLatitude = 28.5872637;
-                destinationLongitude = 77.3593832;
+                double sourceLatitude = (double) user1.get(SessionManager.OWN_LAT);
+                double sourceLongitude = (double) user1.get(SessionManager.OWN_LONG);
 
-                if(gps.canGetLocation()){
+                if (session.isPending() == false){
+                    Toast.makeText(getApplicationContext(), "No pending orders", Toast.LENGTH_SHORT).show();
+                } else if(sourceLatitude != -1 && sourceLongitude != -1){
 
-                    sourceLatitude = gps.getLatitude();
-                    sourceLongitude = gps.getLongitude();
+                    HashMap<String, Float> user2 = session.getCustLatlong();
 
-                    String uri = String.format(Locale.ENGLISH, "http://maps.google.com/maps?saddr=%f,%f&daddr=%f,%f", sourceLatitude, sourceLongitude, destinationLatitude, destinationLongitude);
-                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
-                    intent.setClassName("com.google.android.apps.maps", "com.google.android.maps.MapsActivity");
-                    startActivity(intent);
+                    double destinationLatitude = (double) user2.get(SessionManager.CUSTOMER_LAT);
+                    double destinationLongitude = (double) user2.get(SessionManager.CUSTOMER_LONG);
+
+
+                    if(destinationLatitude != -1 && destinationLongitude != -1) {
+                        String uri = String.format(Locale.ENGLISH, "http://maps.google.com/maps?saddr=%f,%f&daddr=%f,%f", sourceLatitude, sourceLongitude, destinationLatitude, destinationLongitude);
+                        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+                        intent.setClassName("com.google.android.apps.maps", "com.google.android.maps.MapsActivity");
+                        startActivity(intent);
+                    }
 
                 }
-                else{
-                    gps.showSettingsAlert();
+
+            }
+        });
+
+        //Accept order
+
+        acceptOrderButton = (Button) findViewById(R.id.acknowledge_order_button);
+        acceptOrderButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(session.isPending() == false) {
+                    Toast.makeText(getApplicationContext(), "No pending orders", Toast.LENGTH_SHORT).show();
+                } else if(session.isAcknowledged() == true) {
+                    Toast.makeText(getApplicationContext(), "Already acknowledged", Toast.LENGTH_SHORT).show();
+                } else if(session.isReached() == true){
+                    Toast.makeText(getApplicationContext(), "Already acknowledged", Toast.LENGTH_SHORT).show();
+                }else {
+                    OrderConfirmAlert("Accept order", "Do you want to confirm order?",
+                            "accept");
                 }
             }
+
+        });
+
+        //Order reached
+
+        orderReachedButton = (Button) findViewById(R.id.order_reached_button);
+        orderReachedButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(session.isPending() ==  false){
+                    Toast.makeText(getApplicationContext(), "No pending orders", Toast.LENGTH_SHORT).show();
+                } else if (session.isReached() == true){
+                    Toast.makeText(getApplicationContext(), "Already reached", Toast.LENGTH_SHORT).show();
+                } else if(session.isAcknowledged() == false) {
+                    Toast.makeText(getApplicationContext(), "Acknowledge order", Toast.LENGTH_SHORT).show();
+                } else {
+                        OrderConfirmAlert("Picked-up?", "Have you picked up order?",
+                                "reach");
+                    }
+                }
         });
 
         //Order finished
@@ -134,10 +175,16 @@ public class HomeActivity extends Activity {
         orderFinishedButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                GPSTracker gps = new GPSTracker(HomeActivity.this);
-                Double latitude = gps.getLatitude();
-                Double longitude = gps.getLongitude();
-                deliveryConfirmAlert(latitude, longitude);
+                if(session.isPending() ==  false){
+                    Toast.makeText(getApplicationContext(), "No pending orders", Toast.LENGTH_SHORT).show();
+                } else if(session.isAcknowledged() == false) {
+                    Toast.makeText(getApplicationContext(), "Acknowledge order", Toast.LENGTH_SHORT).show();
+                } else if (session.isReached() == false){
+                        Toast.makeText(getApplicationContext(), "Press reached button", Toast.LENGTH_SHORT).show();
+                } else {
+                    OrderConfirmAlert("Order Finished?", "Have you finished order delivery?",
+                            "complete");
+                }
             }
         });
 
@@ -184,31 +231,254 @@ public class HomeActivity extends Activity {
         });
     }
 
-
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_home, menu);
-        return true;
+    protected void onStart(){
+        super.onStart();
+        if(session.isPending() == false) {
+            toServer("check", 1);
+        }
+        updateView();
     }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+    public void OrderConfirmAlert(String title, String message,final String status){
+
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
+
+        alertDialog.setTitle(title);
+
+        alertDialog.setMessage(message);
+
+        alertDialog.setPositiveButton("YES", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+
+                toServer(status, 0);
+
+            }
+        });
+
+        alertDialog.setNegativeButton("NO", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+
+            }
+        });
+
+        alertDialog.show();
+
+    }
+
+
+    //Location transmission functions
+    public void startLocationTransmitter(){
+        session.startLocationService();
+        Intent intent = new Intent(this, LocationTransmitter.class);
+        startService(intent);
+    }
+
+    public void stopLocationTransmitter(){
+        session.stopLocationService();
+        Intent intent = new Intent(this, LocationTransmitter.class);
+        stopService(intent);
+    }
+
+    //Update order
+
+    public void toServer(final String status, final int i) {
+        // Instantiate the RequestQueue.
+        RequestQueue queue = Volley.newRequestQueue(this);
+
+        HashMap<String, String> user = session.getUserDetails();
+        final String number = user.get(SessionManager.KEY_SECRET);
+        final String orderId = user.get(SessionManager.ORDER_ID);
+
+        String url = "http://probzip.com/delivery_boy/api/v1/";
+
+        HashMap<String, Float> user1 = session.getOwnLatlong();
+        final String latitude = user1.get(SessionManager.OWN_LAT).toString();
+       final String longitude = user1.get(SessionManager.OWN_LONG).toString();
+
+
+        url += "?status=" + status + "&secret=" + number + "&latitude=" + latitude +
+                "&longitude=" + longitude + "&order_id=" + orderId;
+
+        // Request a JSON response from the provided URL.
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+
+                        if(status.equals("accept")){
+                            if(getResponse(response).equals("ok")) {
+                                session.createAcknowledgement();
+                                Toast.makeText(getApplicationContext(), "Accepted", Toast.LENGTH_LONG).show();
+                            } else {
+                                showAlertDialog("Please press " + status + " button again");
+                            }
+                        }
+
+                        else if(status.equals("complete")){
+                            if(getResponse(response).equals("ok")) {
+                                session.refreshOrder();
+                                updateView();
+                                Toast.makeText(getApplicationContext(), "Completed", Toast.LENGTH_LONG).show();
+                                toServer("check", 1);
+                            } else {
+                                showAlertDialog("Please press " + status + " button again");
+
+                            }
+                        }
+
+                        else if(status.equals("reach")){
+                            if(getResponse(response).equals("ok")) {
+                                Toast.makeText(getApplicationContext(), "Reached", Toast.LENGTH_LONG).show();
+                                toServer("check", 0);
+                            } else {
+                                showAlertDialog("Please press " + status + " button again");
+                            }
+                        }
+
+                        else if(status.equals("check")){
+                            if (getResponse(response).equals("ok")){
+                                JSONObject orderdetails = response;
+                                updateOrderDetails(orderdetails, i);
+                            }
+                            else if(getResponse(response).equals("error") && i == 0){
+                                showAlertDialog("Could not update customer details");
+                            }
+                        }
+                    }
+                }, new Response.ErrorListener() {
+
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                if(status.equals("check")){
+                    if(i==0) {
+                        showAlertDialog("Could not update customer details");
+                    }
+                    else {
+                        updateView();
+                    }
+                } else {
+                    showAlertDialog("Please press " + status + " button again error");
+
+                    Toast.makeText(getApplicationContext(), "?status=" + status + "&secret=" + number + "&latitude=" + latitude +
+                            "&longitude=" + longitude + "&order_id=" + orderId, Toast.LENGTH_LONG).show();
+                }
+            }
+        });
+
+        // Add the request to the RequestQueue.
+        queue.add(jsonObjectRequest);
+    }
+
+    public String getResponse(JSONObject response){
+        String result = "error";
+
+        try {
+            result = response.getString("result");
+        } catch (JSONException e){
+
+        }
+        return result;
+    }
+
+    public void updateOrderDetails(JSONObject orderdetails, int i){
+
+        if(i==0){
+            session.onReached();
+            showAlertDialog("Updated customer details");
+        } else {
+            showAlertDialog("New order received");
         }
 
-        return super.onOptionsItemSelected(item);
+        String ordertype = "None";
+        String custname = "None";
+        String address = "None";
+        String custphone = "";
+        double latitude = 0.0;
+        double longitude = 0.0;
+        String orderid = "0";
+
+        try {
+            ordertype = orderdetails.getString("type");
+            custname = orderdetails.getString("name");
+            address = orderdetails.getString("address");
+            custphone = orderdetails.getString("phone");
+            orderid = orderdetails.getString("order_id");
+
+            String lat1 = orderdetails.getString("lat");
+            String long1 = orderdetails.getString("long");
+            if(lat1.equals("null") == false && long1.equals("null") == false){
+                latitude = Double.parseDouble(lat1);
+                longitude = Double.parseDouble(long1);
+            }
+        } catch (JSONException e){
+        }
+
+        session.updateCurrentOrder(ordertype, custname, address, custphone, latitude, longitude, orderid, i);
+
+        updateView();
+    }
+
+    public void updateView(){
+
+
+        HashMap<String, String> user = session.getUserDetails();
+
+        orderType = (TextView) findViewById(R.id.order_type);
+        CustomerName = (TextView) findViewById(R.id.display_name);
+        addressDisplay = (TextView) findViewById(R.id.address);
+        customerPhone = (TextView) findViewById(R.id.customer_number);
+        userNumber = (TextView) findViewById(R.id.user_number);
+
+        String ordertype = user.get(SessionManager.ORDER_TYPE);
+        String custname = user.get(SessionManager.CUSTOMER_NAME);
+        String address = user.get(SessionManager.ADDRESS);
+        String custphone = user.get(SessionManager.CUSTOMER_PHONE);
+        String number = user.get(SessionManager.KEY_SECRET);
+
+        orderType.setText(ordertype);
+        CustomerName.setText(custname);
+        addressDisplay.setText(address);
+        customerPhone.setText(custphone);
+        userNumber.setText(number);
+    }
+
+    //Logout functions
+    public void notifyLogout(){
+        RequestQueue queue = Volley.newRequestQueue(this);
+        HashMap<String, String> user = session.getUserDetails();
+        String number = user.get(SessionManager.KEY_SECRET);
+
+        String url = "http://probzip.com/delivery_boy/api/v1/";
+
+        url += "?status=logout" +"&secret=" + number;
+
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        if(getResponse(response).equals("ok")) {
+                            stopLocationTransmitter();
+                            session.logoutUser();
+                            finish();
+                        } else {
+                            showAlertDialog("Please try again");
+                        }
+                    }
+                }, new Response.ErrorListener() {
+
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                showAlertDialog("Please try again");
+            }
+        });
+
+        // Add the request to the RequestQueue.
+        queue.add(jsonObjectRequest);
     }
 
     public void signOutAlert(){
-
 
         AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
 
@@ -218,47 +488,36 @@ public class HomeActivity extends Activity {
 
         alertDialog.setPositiveButton("YES", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
-                session.logoutUser();
-                finish();
+                notifyLogout();
             }
         });
 
         alertDialog.setNegativeButton("NO", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
-
             }
         });
 
         alertDialog.show();
     }
 
-    public void deliveryConfirmAlert(final double latitude,final double longitude){
+    // General alert dialog
+    public void showAlertDialog(String message) {
+        AlertDialog alertDialog = new AlertDialog.Builder(this).create();
 
-        AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
+        // Setting Dialog Title
+        alertDialog.setTitle("Alert");
 
-        alertDialog.setTitle("Order Finished?");
+        // Setting Dialog Message
+        alertDialog.setMessage(message);
 
-        alertDialog.setMessage("Have you finished order delivery/pick-up?");
-
-        alertDialog.setPositiveButton("YES", new DialogInterface.OnClickListener() {
+        // Setting OK Button
+        alertDialog.setButton(alertDialog.BUTTON_POSITIVE, "OK", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
-
-                String display = "lat : " + latitude + "\r\n" + "long : " + longitude;
-
-                Toast.makeText(getApplicationContext(), display, Toast.LENGTH_LONG).show();
-
             }
         });
 
-        alertDialog.setNegativeButton("NO", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
-
-            }
-        });
-
+        // Showing Alert Message
         alertDialog.show();
-
     }
-
 
 }
