@@ -87,7 +87,7 @@ public class SessionManager {
 
     public void updateCurrentOrder(String ordertype, String custname, String address,
                                    String custphone, double latitude, double longitude,
-                                   String orderid, int i){
+                                   String orderid){
 
         editor.putString(ORDER_TYPE, ordertype);
         editor.putString(CUSTOMER_NAME, custname);
@@ -97,15 +97,13 @@ public class SessionManager {
         editor.putFloat(CUSTOMER_LONG, (float) longitude);
 
 
-        if(i == 1) {
-            editor.putString(ORDER_ID,orderid);
-            editor.putBoolean(ORDER_PENDING_STATUS, true);
-            editor.putBoolean(REACHED_STATUS, false);
-            editor.putBoolean(COMPLETED_STATUS, false);
-            editor.putBoolean(ACKNOWLEDGED_STATUS, false);
-        } else{
-            editor.putBoolean(REACHED_STATUS, true);
-        }
+
+        editor.putString(ORDER_ID,orderid);
+        editor.putBoolean(ORDER_PENDING_STATUS, true);
+        editor.putBoolean(REACHED_STATUS, false);
+        editor.putBoolean(COMPLETED_STATUS, false);
+        editor.putBoolean(ACKNOWLEDGED_STATUS, false);
+
 
         editor.commit();
     }

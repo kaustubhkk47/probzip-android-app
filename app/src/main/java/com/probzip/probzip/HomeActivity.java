@@ -163,7 +163,7 @@ public class HomeActivity extends Activity {
                 } else if(session.isAcknowledged() == false) {
                     Toast.makeText(getApplicationContext(), "Acknowledge order", Toast.LENGTH_SHORT).show();
                 } else {
-                        OrderConfirmAlert("Picked-up?", "Have you picked up order?",
+                        OrderConfirmAlert("Reached?", "Have you picked up reached order location?",
                                 "reach");
                     }
                 }
@@ -182,7 +182,7 @@ public class HomeActivity extends Activity {
                 } else if (session.isReached() == false){
                         Toast.makeText(getApplicationContext(), "Press reached button", Toast.LENGTH_SHORT).show();
                 } else {
-                    OrderConfirmAlert("Order Finished?", "Have you finished order delivery?",
+                    OrderConfirmAlert("Order completed?", "Have you completed the order?",
                             "complete");
                 }
             }
@@ -212,8 +212,11 @@ public class HomeActivity extends Activity {
             public void onClick(View v) {
 
                 //Put phone number of manager
+                HashMap<String, String> user = session.getUserDetails();
+                final String number = user.get(SessionManager.KEY_SECRET);
+                String message = "I have a problem! Please call me on my number " + number;
                 SmsManager smsManager = SmsManager.getDefault();
-                smsManager.sendTextMessage("7895161705", null, "FUCK YOU", null, null);
+                smsManager.sendTextMessage("7895161705", null, message, null, null);
 
             }
         });
@@ -235,7 +238,7 @@ public class HomeActivity extends Activity {
     protected void onStart(){
         super.onStart();
         if(session.isPending() == false) {
-            toServer("check", 1);
+            toServer("check");
         }
         updateView();
     }
@@ -252,7 +255,7 @@ public class HomeActivity extends Activity {
         alertDialog.setPositiveButton("YES", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
 
-                toServer(status, 0);
+                toServer(status);
 
             }
         });
@@ -283,7 +286,7 @@ public class HomeActivity extends Activity {
 
     //Update order
 
-    public void toServer(final String status, final int i) {
+    public void toServer(final String status) {
         // Instantiate the RequestQueue.
         RequestQueue queue = Volley.newRequestQueue(this);
 
@@ -291,11 +294,11 @@ public class HomeActivity extends Activity {
         final String number = user.get(SessionManager.KEY_SECRET);
         final String orderId = user.get(SessionManager.ORDER_ID);
 
-        String url = "http://probzip.com/delivery_boy/api/v1/";
+        String url = "http://probzip.webfactional.com/delivery_boy/api/v1/";
 
         HashMap<String, Float> user1 = session.getOwnLatlong();
         final String latitude = user1.get(SessionManager.OWN_LAT).toString();
-       final String longitude = user1.get(SessionManager.OWN_LONG).toString();
+        final String longitude = user1.get(SessionManager.OWN_LONG).toString();
 
 
         url += "?status=" + status + "&secret=" + number + "&latitude=" + latitude +
@@ -321,7 +324,7 @@ public class HomeActivity extends Activity {
                                 session.refreshOrder();
                                 updateView();
                                 Toast.makeText(getApplicationContext(), "Completed", Toast.LENGTH_LONG).show();
-                                toServer("check", 1);
+                                toServer("check");
                             } else {
                                 showAlertDialog("Please press " + status + " button again");
 
@@ -330,8 +333,8 @@ public class HomeActivity extends Activity {
 
                         else if(status.equals("reach")){
                             if(getResponse(response).equals("ok")) {
+                                session.onReached();
                                 Toast.makeText(getApplicationContext(), "Reached", Toast.LENGTH_LONG).show();
-                                toServer("check", 0);
                             } else {
                                 showAlertDialog("Please press " + status + " button again");
                             }
@@ -340,10 +343,10 @@ public class HomeActivity extends Activity {
                         else if(status.equals("check")){
                             if (getResponse(response).equals("ok")){
                                 JSONObject orderdetails = response;
-                                updateOrderDetails(orderdetails, i);
+                                updateOrderDetails(orderdetails);
                             }
-                            else if(getResponse(response).equals("error") && i == 0){
-                                showAlertDialog("Could not update customer details");
+                            else if(getResponse(response).equals("error")){
+                                //showAlertDialog("Could not update customer details");
                             }
                         }
                     }
@@ -352,12 +355,9 @@ public class HomeActivity extends Activity {
             @Override
             public void onErrorResponse(VolleyError error) {
                 if(status.equals("check")){
-                    if(i==0) {
-                        showAlertDialog("Could not update customer details");
-                    }
-                    else {
-                        updateView();
-                    }
+
+                    updateView();
+
                 } else {
                     showAlertDialog("Please press " + status + " button again error");
 
@@ -382,14 +382,10 @@ public class HomeActivity extends Activity {
         return result;
     }
 
-    public void updateOrderDetails(JSONObject orderdetails, int i){
+    public void updateOrderDetails(JSONObject orderdetails){
 
-        if(i==0){
-            session.onReached();
-            showAlertDialog("Updated customer details");
-        } else {
-            showAlertDialog("New order received");
-        }
+
+        showAlertDialog("New order received");
 
         String ordertype = "None";
         String custname = "None";
@@ -415,7 +411,7 @@ public class HomeActivity extends Activity {
         } catch (JSONException e){
         }
 
-        session.updateCurrentOrder(ordertype, custname, address, custphone, latitude, longitude, orderid, i);
+        session.updateCurrentOrder(ordertype, custname, address, custphone, latitude, longitude, orderid);
 
         updateView();
     }
@@ -450,7 +446,7 @@ public class HomeActivity extends Activity {
         HashMap<String, String> user = session.getUserDetails();
         String number = user.get(SessionManager.KEY_SECRET);
 
-        String url = "http://probzip.com/delivery_boy/api/v1/";
+        String url = "http://probzip.webfactional.com/delivery_boy/api/v1/";
 
         url += "?status=logout" +"&secret=" + number;
 

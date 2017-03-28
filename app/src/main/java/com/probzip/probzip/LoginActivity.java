@@ -1,8 +1,10 @@
 package com.probzip.probzip;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.app.Activity;
 import android.view.View;
@@ -51,9 +53,9 @@ public class LoginActivity extends Activity {
     public void checkCredentials(final String mobileNumber, String password) {
         // Instantiate the RequestQueue.
         RequestQueue queue = Volley.newRequestQueue(this);
-        String url = "http://probzip.com/delivery_boy/api/v1/";
+        String url = "http://probzip.webfactional.com/delivery_boy/api/v1/";
 
-        url += "?status=login"  + "&mobile_number=" + mobileNumber + "&password=" + password;
+        url += "?status=login"  + "&secret=" + mobileNumber + "&password=" + password;
 
         // Request a JSON response from the provided URL.
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null,
@@ -84,6 +86,17 @@ public class LoginActivity extends Activity {
     }
 
     public void handleLogin(View view) {
+
+        LocationManager lm = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
+        boolean gps_enabled = false;
+        try {
+            gps_enabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        } catch(Exception ex) {}
+
+        if(gps_enabled == false){
+            showAlertDialog("Please enable location sensor");
+            return;
+        }
 
         mobileNumber = (EditText) findViewById(R.id.mobile_number);
         password = (EditText) findViewById(R.id.password);

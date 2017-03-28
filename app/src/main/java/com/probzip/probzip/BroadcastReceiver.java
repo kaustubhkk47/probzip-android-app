@@ -30,7 +30,7 @@ public class BroadcastReceiver extends WakefulBroadcastReceiver {
         Intent i = new Intent(context, BroadcastReceiver.class);
         PendingIntent pi = PendingIntent.getBroadcast(context, 0, i, 0);
 
-        am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 1000 * 60 , pi);
+        am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 1000 * 30 , pi);
     }
 
     public void CancelAlarm(Context context){

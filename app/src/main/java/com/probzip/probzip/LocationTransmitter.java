@@ -85,7 +85,7 @@ public class LocationTransmitter extends Service implements com.google.android.g
     public void onConnected(Bundle bundle){
         mLocationRequest = LocationRequest.create();
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        mLocationRequest.setInterval(1000 * 30);
+        mLocationRequest.setInterval(1000 * 10);
         startLocationUpdates();
 
         mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
@@ -124,7 +124,7 @@ public class LocationTransmitter extends Service implements com.google.android.g
         HashMap<String, String> user = session.getUserDetails();
         String number = user.get(SessionManager.KEY_SECRET);
 
-        String url = "http://probzip.com/delivery_boy/api/v1/";
+        String url = "http://probzip.webfactional.com/delivery_boy/api/v1/";
 
         url += "?status=location" + "&secret=" + number + "&latitude=" + latitude + "&longitude=" + longitude;
 
